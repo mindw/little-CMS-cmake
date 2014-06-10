@@ -1,0 +1,7 @@
+{
+    "root" : "j:/dev/opt",
+    "deps" : [
+        "tiff",
+        "libjpeg-turbo"
+    ]
+}
