@@ -28,7 +28,11 @@ if (MSVC)
     
     # add the runtime version and target architecture into the DLL name per MS
     # guidelines
-    set(MSVC_SHARED_SUFFIX_BASE "-vc${MSVCVER}-mt-${ARCH}")
+    if ("${ARCH}" STREQUAL "x64")
+        set(MSVC_SHARED_SUFFIX_BASE "-vc${MSVCVER}-mt-${ARCH}")
+    else()
+        set(MSVC_SHARED_SUFFIX_BASE "-vc${MSVCVER}-mt")
+    endif()
     set(CMAKE_SHARED_LIBRARY_SUFFIX "${MSVC_SHARED_SUFFIX_BASE}.dll")
 endif()
 
@@ -82,6 +86,31 @@ if (BUILD_TOOLS)
         utils/common/vprf.c
         utils/common/xgetopt.c
     )
+    
+    # linkicc
+    add_executable(linkicc
+        ${tools_common}
+        utils/linkicc/linkicc.c
+    )
+    target_link_libraries(linkicc PRIVATE ${LIBTARGET})
+    target_include_directories(linkicc PRIVATE utils/common)
+   
+    add_executable(psicc
+        ${tools_common}
+        utils/psicc/psicc.c
+    )
+    target_link_libraries(psicc PRIVATE ${LIBTARGET})
+    target_include_directories(psicc PRIVATE utils/common)
+
+    add_executable(transicc
+        ${tools_common}
+        utils/transicc/transicc.c
+    )
+    target_link_libraries(transicc PRIVATE ${LIBTARGET})
+    target_include_directories(transicc PRIVATE utils/common)
+    
+
+    set (tool_targets psicc linkicc transicc)
 
     if (JPEG_FOUND)
         add_executable(jpgicc 
@@ -93,22 +122,9 @@ if (BUILD_TOOLS)
         target_link_libraries(jpgicc PRIVATE ${LIBTARGET} ${JPEG_LIBRARIES})
         target_include_directories(jpgicc PRIVATE ${JPEG_INCLUDE_DIR} utils/common)
 
-    endif(JPEG_FOUND)
+        set (tool_targets ${tool_targets} jpgicc)
 
-    # linkicc
-    add_executable(linkicc
-        ${tools_common}
-        utils/linkicc/linkicc.c
-    )
-    target_link_libraries(linkicc PRIVATE ${LIBTARGET})
-    target_include_directories(linkicc PRIVATE utils/common)
-    
-    add_executable(psicc
-        ${tools_common}
-        utils/psicc/psicc.c
-    )
-    target_link_libraries(psicc PRIVATE ${LIBTARGET})
-    target_include_directories(psicc PRIVATE utils/common)
+    endif(JPEG_FOUND)
 
     if (TIFF_FOUND)
         add_executable(tificc
@@ -117,15 +133,10 @@ if (BUILD_TOOLS)
             )
         target_link_libraries(tificc PRIVATE  ${LIBTARGET} ${TIFF_LIBRARIES})
         target_include_directories(tificc PRIVATE ${TIFF_INCLUDE_DIR} utils/common)
+
+        set (tool_targets ${tool_targets} tificc)
     endif()
 
-    add_executable(transicc
-        ${tools_common}
-        utils/transicc/transicc.c
-    )
-    target_link_libraries(transicc PRIVATE ${LIBTARGET})
-    target_include_directories(transicc PRIVATE utils/common)
-    
 endif()
 
 if (BUILD_TESTS)
@@ -147,7 +158,7 @@ if (BUILD_TESTS)
     add_test(NAME test COMMAND testcms WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/testbed")
 endif()
 
-install(TARGETS ${LIBTARGET} EXPORT LittleCms2
+install(TARGETS ${LIBTARGET} ${tool_targets} EXPORT LittleCms2
     RUNTIME DESTINATION "bin"
     ARCHIVE DESTINATION "lib"
     LIBRARY DESTINATION "lib"
